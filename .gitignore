@@ -205,3 +205,99 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# =============================================================================
+# LINE CHATBOT SERVICE SPECIFIC - SECURITY CRITICAL FOR PUBLIC REPO
+# =============================================================================
+
+# Environment files - prevent any .env files except the example
+.env*
+!.env.example
+
+# Google Cloud & Service Account credentials
+*.json
+service-account*.json
+gcp-credentials*.json
+google-credentials*.json
+google-cloud-*.json
+
+# API Keys & Certificates  
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+*.keystore
+
+# LINE Platform secrets
+line-*.json
+webhook-*.txt
+line-credentials.*
+
+# Redis data & dumps
+*.rdb
+dump.rdb
+redis-data/
+redis_data/
+
+# Application logs
+logs/
+*.log
+audit.log
+app.log
+access.log
+error.log
+
+# Local database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Cache directories
+cache/
+.cache/
+tmp/
+temp/
+.tmp/
+
+# VS Code workspace settings that might contain secrets
+.vscode/settings.json
+.vscode/launch.json
+
+# Docker & Development
+docker-volumes/
+docker-compose.override.yml
+docker-compose.local.yml
+docker-compose.prod.yml
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# IDE and editor temporary files
+.DS_Store
+Thumbs.db
+
+# Local configuration files
+local-config/
+dev-data/
+mock-data/
+test-secrets/
+
+# Build artifacts that might contain embedded secrets
+dist-secrets/
+build-secrets/
+
+# Terraform state files (if used for infrastructure)
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# Kubernetes secrets (if used for deployment)
+k8s-secrets.yml
+kubernetes-secrets.yaml
+*-secret.yaml
+*-secret.yml
