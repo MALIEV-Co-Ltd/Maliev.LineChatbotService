@@ -14,6 +14,7 @@ from ..database.redis_client import redis_client
 from ..secrets.manager import secret_manager
 from ..ai import ai_manager, AIMessage
 from .models import LineEvent, MessageEvent, FollowEvent, UnfollowEvent
+from .client import line_client
 
 logger = structlog.get_logger("line.webhook")
 
@@ -116,6 +117,11 @@ class LineWebhookHandler:
         
         if not self._channel_secret:
             logger.warning("Cannot verify signature: channel secret not configured")
+            # For development testing, allow bypass when secret is not configured
+            from ..config.settings import settings
+            if settings.environment == "development":
+                logger.info("Development mode: bypassing signature verification")
+                return True
             return False
         
         try:
@@ -459,13 +465,33 @@ class LineWebhookHandler:
     async def _send_reply(self, reply_token: str, message: str) -> bool:
         """Send reply message to LINE."""
         
-        # TODO: Implement LINE Messaging API integration
-        # For now, just log the reply
+        if not reply_token:
+            logger.warning("Cannot send reply: missing reply token")
+            return False
         
-        logger.info("Reply message", reply_token=reply_token, message_length=len(message))
-        
-        # Placeholder implementation
-        return True
+        try:
+            # Initialize LINE client if needed
+            if not line_client._initialized:
+                await line_client.initialize()
+            
+            # Create text message
+            text_message = line_client.create_text_message(message)
+            
+            # Send reply
+            success = await line_client.send_reply_message(reply_token, [text_message])
+            
+            logger.info("Reply sent", 
+                       reply_token=reply_token, 
+                       message_length=len(message),
+                       success=success)
+            
+            return success
+            
+        except Exception as e:
+            logger.error("Failed to send reply", 
+                        reply_token=reply_token, 
+                        error=str(e))
+            return False
     
     async def _update_customer_interaction(self, user_id: str):
         """Update customer last interaction time."""

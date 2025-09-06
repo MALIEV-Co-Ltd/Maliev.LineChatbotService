@@ -185,6 +185,14 @@ class RedisClient:
             logger.error(f"Redis HDEL error for hash '{name}' keys {keys}: {e}")
             raise
 
+    async def hincrby(self, name: str, key: str, amount: int = 1) -> int:
+        """Increment hash field by amount."""
+        try:
+            return await self.client.hincrby(name, key, amount)
+        except RedisError as e:
+            logger.error(f"Redis HINCRBY error for hash '{name}' key '{key}': {e}")
+            raise
+
     # Set operations
 
     async def sadd(self, name: str, *values: Union[str, bytes, int, float]) -> int:
@@ -229,7 +237,7 @@ class RedisClient:
             logger.error(f"Redis PUBLISH error for channel '{channel}': {e}")
             raise
 
-    def pubsub(self) -> redis.PubSub:
+    def pubsub(self):
         """Get pub/sub instance."""
         return self.client.pubsub()
 
@@ -273,6 +281,48 @@ class RedisClient:
             return await self.client.info(section)
         except RedisError as e:
             logger.error(f"Redis INFO error: {e}")
+            raise
+
+    # List operations
+
+    async def lrange(self, key: str, start: int, end: int) -> list:
+        """Get range of list elements."""
+        try:
+            return await self.client.lrange(key, start, end)
+        except RedisError as e:
+            logger.error(f"Redis LRANGE error for key '{key}': {e}")
+            raise
+
+    async def rpush(self, key: str, *values: Union[str, bytes, int, float]) -> int:
+        """Push elements to end of list."""
+        try:
+            return await self.client.rpush(key, *values)
+        except RedisError as e:
+            logger.error(f"Redis RPUSH error for key '{key}': {e}")
+            raise
+
+    async def lpush(self, key: str, *values: Union[str, bytes, int, float]) -> int:
+        """Push elements to start of list."""
+        try:
+            return await self.client.lpush(key, *values)
+        except RedisError as e:
+            logger.error(f"Redis LPUSH error for key '{key}': {e}")
+            raise
+
+    async def ltrim(self, key: str, start: int, end: int) -> bool:
+        """Trim list to specified range."""
+        try:
+            return await self.client.ltrim(key, start, end)
+        except RedisError as e:
+            logger.error(f"Redis LTRIM error for key '{key}': {e}")
+            raise
+
+    async def llen(self, key: str) -> int:
+        """Get length of list."""
+        try:
+            return await self.client.llen(key)
+        except RedisError as e:
+            logger.error(f"Redis LLEN error for key '{key}': {e}")
             raise
 
 

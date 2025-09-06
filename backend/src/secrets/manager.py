@@ -6,8 +6,21 @@ from typing import Dict, Any, Optional, Union
 from datetime import datetime, timedelta
 
 import structlog
-from google.cloud import secretmanager
-from google.api_core import exceptions as gcp_exceptions
+
+# Optional Google Cloud dependencies for development
+try:
+    from google.cloud import secretmanager_v1 as secretmanager
+    from google.api_core import exceptions as gcp_exceptions
+    HAS_GCP = True
+except ImportError:
+    try:
+        from google.cloud import secretmanager
+        from google.api_core import exceptions as gcp_exceptions
+        HAS_GCP = True
+    except ImportError:
+        secretmanager = None
+        gcp_exceptions = None
+        HAS_GCP = False
 
 from ..config.settings import settings
 from ..database.redis_client import redis_client
