@@ -43,7 +43,7 @@ class GeminiProvider(AIProvider):
         )
         
         # Model-specific settings
-        self.model_name = config.model or "gemini-2.0-flash-exp"
+        self.model_name = config.model or "gemini-2.5-flash"
         
     async def generate_response(
         self,

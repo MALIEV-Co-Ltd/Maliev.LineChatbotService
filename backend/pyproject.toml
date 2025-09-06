@@ -42,6 +42,8 @@ dev = [
     "httpx>=0.25.0",  # For testing
     "pytest-redis>=3.0.0",
     "fakeredis>=2.20.0",
+    "testcontainers>=4.0.0",  # For component tests
+    "requests>=2.31.0",  # For smoke tests
 ]
 
 [tool.ruff]
@@ -93,6 +95,9 @@ testpaths = [
 ]
 asyncio_mode = "auto"
 markers = [
+    "unit: marks tests as unit tests (fast, isolated)",
+    "component: marks tests as component tests (real dependencies)", 
+    "smoke: marks tests as smoke tests (end-to-end)",
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
 ]

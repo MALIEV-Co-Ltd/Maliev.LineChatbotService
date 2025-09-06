@@ -38,7 +38,7 @@ class AIConfiguration:
     api_key: str
     base_url: Optional[str] = None
     model: str = ""
-    max_tokens: int = 2048
+    max_tokens: int = 65536
     temperature: float = 0.7
     enabled: bool = True
     priority: int = 1
