@@ -1,7 +1,5 @@
 """Application configuration and settings using Pydantic Settings."""
 
-import os
-from typing import List, Optional
 
 from pydantic import Field, validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -35,16 +33,16 @@ class Settings(BaseSettings):
     redis_retry_on_timeout: bool = Field(default=True, description="Retry Redis operations on timeout")
 
     # Google Cloud Settings
-    google_cloud_project: Optional[str] = Field(default=None, description="GCP project ID")
-    google_application_credentials: Optional[str] = Field(
+    google_cloud_project: str | None = Field(default=None, description="GCP project ID")
+    google_application_credentials: str | None = Field(
         default=None, description="Path to GCP service account JSON"
     )
 
     # API Keys (for development - production uses Secret Manager)
-    line_channel_access_token: Optional[str] = Field(default=None, description="LINE channel access token")
-    line_channel_secret: Optional[str] = Field(default=None, description="LINE channel secret")
-    gemini_api_key: Optional[str] = Field(default=None, description="Gemini API key")
-    openai_api_key: Optional[str] = Field(default=None, description="OpenAI API key")
+    line_channel_access_token: str | None = Field(default=None, description="LINE channel access token")
+    line_channel_secret: str | None = Field(default=None, description="LINE channel secret")
+    gemini_api_key: str | None = Field(default=None, description="Gemini API key")
+    openai_api_key: str | None = Field(default=None, description="OpenAI API key")
 
     # Security Settings
     jwt_secret_key: str = Field(default="dev-secret-key-change-in-production", description="JWT secret key")
@@ -56,17 +54,17 @@ class Settings(BaseSettings):
     admin_password: str = Field(default="admin123", description="Default admin password")
 
     # Application URLs
-    webhook_url: Optional[str] = Field(default=None, description="LINE webhook URL")
+    webhook_url: str | None = Field(default=None, description="LINE webhook URL")
     admin_ui_url: str = Field(default="http://localhost:3000", description="Admin UI URL")
 
     # CORS Settings
-    cors_origins: List[str] = Field(
+    cors_origins: list[str] = Field(
         default=["http://localhost:3000", "http://127.0.0.1:3000"],
         description="Allowed CORS origins"
     )
     cors_allow_credentials: bool = Field(default=True, description="Allow CORS credentials")
-    cors_allow_methods: List[str] = Field(default=["*"], description="Allowed CORS methods")
-    cors_allow_headers: List[str] = Field(default=["*"], description="Allowed CORS headers")
+    cors_allow_methods: list[str] = Field(default=["*"], description="Allowed CORS methods")
+    cors_allow_headers: list[str] = Field(default=["*"], description="Allowed CORS headers")
 
     # Feature Flags
     enable_caching: bool = Field(default=True, description="Enable LLM caching")

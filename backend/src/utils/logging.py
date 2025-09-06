@@ -3,7 +3,7 @@
 import logging
 import sys
 import uuid
-from typing import Any, Dict
+from typing import Any
 
 import structlog
 from structlog.types import EventDict
@@ -27,7 +27,7 @@ def add_timestamp(logger: Any, method_name: str, event_dict: EventDict) -> Event
 
 def setup_logging() -> None:
     """Configure structured logging for the application."""
-    
+
     # Configure standard logging
     logging.basicConfig(
         format="%(message)s",
@@ -82,7 +82,7 @@ def log_function_call(func_name: str, **kwargs: Any) -> None:
     logger.debug("Function called", function=func_name, **kwargs)
 
 
-def log_error(error: Exception, context: Dict[str, Any] = None) -> None:
+def log_error(error: Exception, context: dict[str, Any] = None) -> None:
     """Log error with context information."""
     logger = get_logger("error")
     logger.error(

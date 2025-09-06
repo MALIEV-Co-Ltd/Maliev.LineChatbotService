@@ -2,12 +2,12 @@
 
 from fastapi import APIRouter
 
-from .auth import router as auth_router
 from .admin import router as admin_router
 from .ai import router as ai_router
+from .auth import router as auth_router
+from .cache import router as cache_router
 from .customers import router as customers_router
 from .instructions import router as instructions_router
-from .cache import router as cache_router
 from .metrics import router as metrics_router
 
 # Main API v1 router

@@ -1,39 +1,39 @@
 """LINE webhook event models."""
 
-from typing import Dict, Any, Optional, List
-from datetime import datetime
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
 class LineUser(BaseModel):
     """LINE user information."""
     userId: str
-    displayName: Optional[str] = None
-    pictureUrl: Optional[str] = None
-    statusMessage: Optional[str] = None
+    displayName: str | None = None
+    pictureUrl: str | None = None
+    statusMessage: str | None = None
 
 
 class LineSource(BaseModel):
     """LINE event source information."""
     type: str  # user, group, room
-    userId: Optional[str] = None
-    groupId: Optional[str] = None
-    roomId: Optional[str] = None
+    userId: str | None = None
+    groupId: str | None = None
+    roomId: str | None = None
 
 
 class LineMessage(BaseModel):
     """LINE message information."""
     id: str
     type: str  # text, image, video, audio, file, location, sticker
-    text: Optional[str] = None
-    packageId: Optional[str] = None
-    stickerId: Optional[str] = None
+    text: str | None = None
+    packageId: str | None = None
+    stickerId: str | None = None
 
 
 class LinePostback(BaseModel):
     """LINE postback information."""
     data: str
-    params: Optional[Dict[str, Any]] = None
+    params: dict[str, Any] | None = None
 
 
 class LineEvent(BaseModel):
@@ -43,7 +43,7 @@ class LineEvent(BaseModel):
     timestamp: int
     source: LineSource
     webhookEventId: str
-    deliveryContext: Dict[str, Any] = Field(default_factory=dict)
+    deliveryContext: dict[str, Any] = Field(default_factory=dict)
 
 
 class MessageEvent(LineEvent):
@@ -74,4 +74,4 @@ class PostbackEvent(LineEvent):
 class LineWebhookRequest(BaseModel):
     """LINE webhook request."""
     destination: str
-    events: List[LineEvent]
+    events: list[LineEvent]

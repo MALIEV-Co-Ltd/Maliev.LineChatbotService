@@ -1,8 +1,7 @@
 """Redis client configuration and connection management."""
 
-import asyncio
 import logging
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 import redis.asyncio as redis
 from redis.asyncio import Redis
@@ -18,8 +17,8 @@ class RedisClient:
 
     def __init__(self) -> None:
         """Initialize Redis client."""
-        self._client: Optional[Redis] = None
-        self._connection_pool: Optional[redis.ConnectionPool] = None
+        self._client: Redis | None = None
+        self._connection_pool: redis.ConnectionPool | None = None
         self._connected = False
 
     async def connect(self) -> None:
@@ -43,7 +42,7 @@ class RedisClient:
             # Test connection
             await self._client.ping()
             self._connected = True
-            
+
             logger.info("Redis connection established successfully")
 
         except (ConnectionError, TimeoutError) as e:
@@ -74,7 +73,7 @@ class RedisClient:
         try:
             if not self._client:
                 return False
-            
+
             await self._client.ping()
             return True
         except Exception as e:
@@ -95,7 +94,7 @@ class RedisClient:
 
     # Core Redis operations with error handling
 
-    async def get(self, key: str) -> Optional[str]:
+    async def get(self, key: str) -> str | None:
         """Get value by key."""
         try:
             return await self.client.get(key)
@@ -104,11 +103,11 @@ class RedisClient:
             raise
 
     async def set(
-        self, 
-        key: str, 
-        value: Union[str, bytes, int, float], 
-        ex: Optional[int] = None,
-        px: Optional[int] = None,
+        self,
+        key: str,
+        value: str | bytes | int | float,
+        ex: int | None = None,
+        px: int | None = None,
         nx: bool = False,
         xx: bool = False
     ) -> bool:
@@ -153,7 +152,7 @@ class RedisClient:
 
     # Hash operations
 
-    async def hget(self, name: str, key: str) -> Optional[str]:
+    async def hget(self, name: str, key: str) -> str | None:
         """Get hash field value."""
         try:
             return await self.client.hget(name, key)
@@ -161,7 +160,7 @@ class RedisClient:
             logger.error(f"Redis HGET error for hash '{name}' key '{key}': {e}")
             raise
 
-    async def hset(self, name: str, key: str, value: Union[str, bytes, int, float]) -> int:
+    async def hset(self, name: str, key: str, value: str | bytes | int | float) -> int:
         """Set hash field value."""
         try:
             return await self.client.hset(name, key, value)
@@ -169,7 +168,7 @@ class RedisClient:
             logger.error(f"Redis HSET error for hash '{name}' key '{key}': {e}")
             raise
 
-    async def hgetall(self, name: str) -> Dict[str, str]:
+    async def hgetall(self, name: str) -> dict[str, str]:
         """Get all hash fields and values."""
         try:
             return await self.client.hgetall(name)
@@ -195,7 +194,7 @@ class RedisClient:
 
     # Set operations
 
-    async def sadd(self, name: str, *values: Union[str, bytes, int, float]) -> int:
+    async def sadd(self, name: str, *values: str | bytes | int | float) -> int:
         """Add members to set."""
         try:
             return await self.client.sadd(name, *values)
@@ -203,7 +202,7 @@ class RedisClient:
             logger.error(f"Redis SADD error for set '{name}': {e}")
             raise
 
-    async def srem(self, name: str, *values: Union[str, bytes, int, float]) -> int:
+    async def srem(self, name: str, *values: str | bytes | int | float) -> int:
         """Remove members from set."""
         try:
             return await self.client.srem(name, *values)
@@ -219,7 +218,7 @@ class RedisClient:
             logger.error(f"Redis SMEMBERS error for set '{name}': {e}")
             raise
 
-    async def sismember(self, name: str, value: Union[str, bytes, int, float]) -> bool:
+    async def sismember(self, name: str, value: str | bytes | int | float) -> bool:
         """Check if value is set member."""
         try:
             return await self.client.sismember(name, value)
@@ -251,7 +250,7 @@ class RedisClient:
             logger.error(f"Redis KEYS error for pattern '{pattern}': {e}")
             raise
 
-    async def scan(self, cursor: int = 0, match: Optional[str] = None, count: Optional[int] = None):
+    async def scan(self, cursor: int = 0, match: str | None = None, count: int | None = None):
         """Scan keys with cursor."""
         try:
             return await self.client.scan(cursor, match, count)
@@ -275,7 +274,7 @@ class RedisClient:
             logger.error(f"Redis DBSIZE error: {e}")
             raise
 
-    async def info(self, section: Optional[str] = None) -> Dict[str, Any]:
+    async def info(self, section: str | None = None) -> dict[str, Any]:
         """Get Redis server info."""
         try:
             return await self.client.info(section)
@@ -293,7 +292,7 @@ class RedisClient:
             logger.error(f"Redis LRANGE error for key '{key}': {e}")
             raise
 
-    async def rpush(self, key: str, *values: Union[str, bytes, int, float]) -> int:
+    async def rpush(self, key: str, *values: str | bytes | int | float) -> int:
         """Push elements to end of list."""
         try:
             return await self.client.rpush(key, *values)
@@ -301,7 +300,7 @@ class RedisClient:
             logger.error(f"Redis RPUSH error for key '{key}': {e}")
             raise
 
-    async def lpush(self, key: str, *values: Union[str, bytes, int, float]) -> int:
+    async def lpush(self, key: str, *values: str | bytes | int | float) -> int:
         """Push elements to start of list."""
         try:
             return await self.client.lpush(key, *values)

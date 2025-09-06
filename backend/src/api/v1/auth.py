@@ -1,14 +1,13 @@
 """Authentication endpoints."""
 
-from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Any
 
 import structlog
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
-from ...middleware.auth_middleware import AuthMiddleware
 from ...config.settings import settings
+from ...middleware.auth_middleware import AuthMiddleware
 
 router = APIRouter()
 logger = structlog.get_logger("auth")
@@ -28,15 +27,15 @@ class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int
-    user: Dict[str, Any]
+    user: dict[str, Any]
 
 
 @router.post("/login", response_model=LoginResponse)
 async def login(credentials: LoginRequest) -> LoginResponse:
     """Authenticate user and return JWT token."""
-    
+
     logger.info("Login attempt", username=credentials.username)
-    
+
     # Verify credentials
     if not auth_middleware.verify_admin_credentials(credentials.username, credentials.password):
         logger.warning("Invalid login credentials", username=credentials.username)
@@ -45,15 +44,15 @@ async def login(credentials: LoginRequest) -> LoginResponse:
             detail="Invalid username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     # Create access token
     access_token = auth_middleware.create_access_token(
         username=credentials.username,
         is_admin=True
     )
-    
+
     logger.info("User logged in successfully", username=credentials.username)
-    
+
     return LoginResponse(
         access_token=access_token,
         expires_in=settings.jwt_access_token_expire_minutes * 60,
@@ -65,14 +64,14 @@ async def login(credentials: LoginRequest) -> LoginResponse:
 
 
 @router.post("/logout")
-async def logout() -> Dict[str, str]:
+async def logout() -> dict[str, str]:
     """Logout endpoint (client-side token invalidation)."""
     logger.info("User logged out")
     return {"message": "Logged out successfully"}
 
 
 @router.get("/verify")
-async def verify_token() -> Dict[str, Any]:
+async def verify_token() -> dict[str, Any]:
     """Verify current token validity."""
     # This endpoint is protected by middleware
     return {
