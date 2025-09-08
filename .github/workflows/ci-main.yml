@@ -1,20 +1,16 @@
-name: Production Deploy
+name: CI - Main to Production
 
 on:
   push:
-    branches: [ main ]
-    tags: [ 'v*' ]
-
-env:
-  PROJECT_ID: maliev-website
-  GAR_LOCATION: asia-southeast1
-  REGISTRY_REPO: maliev-website-artifact
-  SERVICE: maliev-line-chatbot-service
-  ENVIRONMENT: production
+    branches:
+      - main
+    tags:
+      - 'v*'
 
 jobs:
-  test:
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -49,22 +45,6 @@ jobs:
         cd backend
         pytest --cov=src --cov-report=xml --cov-report=term-missing
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./backend/coverage.xml
-        flags: unittests
-        name: codecov-production
-
-  build-and-deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
     - name: Determine version and tag
       id: version
       run: |
@@ -87,15 +67,20 @@ jobs:
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-    - name: Set up Cloud SDK
+    - name: Set up Google Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: maliev-website
 
-    - name: Configure Docker to use gcloud as credential helper
-      run: gcloud auth configure-docker $GAR_LOCATION-docker.pkg.dev
-
-    - name: Create Dockerfile
+    - name: Build and push Docker image
       run: |
-        cat > backend/Dockerfile << 'EOF'
+        cd backend
+        gcloud auth configure-docker asia-southeast1-docker.pkg.dev
+        
+        IMAGE_TAG="${{ steps.version.outputs.version }}"
+        
+        # Create Dockerfile
+        cat > Dockerfile << 'EOF'
         FROM python:3.11-slim
 
         # Set working directory
@@ -132,67 +117,40 @@ jobs:
         # Run the application
         CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
         EOF
+        
+        docker build -t asia-southeast1-docker.pkg.dev/maliev-website/maliev-website-artifact-prod/maliev-line-chatbot-service:$IMAGE_TAG .
+        docker push asia-southeast1-docker.pkg.dev/maliev-website/maliev-website-artifact-prod/maliev-line-chatbot-service:$IMAGE_TAG
+        
+        # Also tag as latest for production
+        docker tag asia-southeast1-docker.pkg.dev/maliev-website/maliev-website-artifact-prod/maliev-line-chatbot-service:$IMAGE_TAG asia-southeast1-docker.pkg.dev/maliev-website/maliev-website-artifact-prod/maliev-line-chatbot-service:latest
+        docker push asia-southeast1-docker.pkg.dev/maliev-website/maliev-website-artifact-prod/maliev-line-chatbot-service:latest
 
-    - name: Build and push Docker image
-      run: |
-        cd backend
-        IMAGE_TAG="${{ steps.version.outputs.version }}"
-        IMAGE_URI=$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REGISTRY_REPO/$SERVICE:$IMAGE_TAG
-        
-        docker build -t $IMAGE_URI .
-        docker push $IMAGE_URI
-        
-        # Tag as latest for production
-        LATEST_URI=$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REGISTRY_REPO/$SERVICE:latest
-        docker tag $IMAGE_URI $LATEST_URI
-        docker push $LATEST_URI
-        
-        echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
-        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-
-    - name: Update GitOps Repository
+    - name: Checkout maliev-gitops repository
       uses: actions/checkout@v4
       with:
         repository: MALIEV-Co-Ltd/maliev-gitops
-        token: ${{ secrets.GITOPS_TOKEN }}
-        path: gitops
+        token: ${{ secrets.GITOPS_PAT }}
+        path: maliev-gitops
 
-    - name: Update production deployment
+    - name: Install Kustomize
       run: |
-        cd gitops
-        
-        # Configure git
-        git config user.name "GitHub Actions Bot"
-        git config user.email "actions@maliev.com"
-        
-        # Update image in kustomization.yaml
-        KUSTOMIZATION_FILE="3-apps/line-chatbot-service/overlays/production/kustomization.yaml"
-        
-        if [ -f "$KUSTOMIZATION_FILE" ]; then
-          # Update or add newTag
-          if grep -q "newTag:" $KUSTOMIZATION_FILE; then
-            sed -i "s|newTag:.*|newTag: $IMAGE_TAG|" $KUSTOMIZATION_FILE
-          else
-            sed -i "/newName:/a \  newTag: $IMAGE_TAG" $KUSTOMIZATION_FILE
-          fi
-          
-          # Commit and push changes
-          git add $KUSTOMIZATION_FILE
-          git commit -m "🚀 Deploy to production: $SERVICE:$IMAGE_TAG
+        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+        sudo mv kustomize /usr/local/bin/
 
-          - Environment: Production
-          - Version: ${{ steps.version.outputs.version }}
-          - Type: ${{ steps.version.outputs.tag_type }}
-          - Image: $IMAGE_URI
-          - Commit: ${{ github.sha }}
-          
-          🤖 Generated with [Claude Code](https://claude.ai/code)
-          Co-Authored-By: Claude <noreply@anthropic.com)"
-          git push
-        else
-          echo "❌ Kustomization file not found: $KUSTOMIZATION_FILE"
-          exit 1
-        fi
+    - name: Update image tag in maliev-gitops using Kustomize
+      run: |
+        IMAGE_TAG="${{ steps.version.outputs.version }}"
+        cd maliev-gitops/3-apps/line-chatbot-service/overlays/production
+        kustomize edit set image asia-southeast1-docker.pkg.dev/maliev-website/maliev-website-artifact/maliev-line-chatbot-service=asia-southeast1-docker.pkg.dev/maliev-website/maliev-website-artifact-prod/maliev-line-chatbot-service:$IMAGE_TAG
+        
+    - name: Commit and push changes
+      run: |
+        cd maliev-gitops
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add .
+        git commit -m "Update line-chatbot-service image to ${{ steps.version.outputs.version }}"
+        git push
 
     - name: Create GitHub Release (for tags only)
       if: steps.version.outputs.is_tag == 'true'
@@ -207,7 +165,7 @@ jobs:
           
           ### 📦 Deployment Information
           - **Environment**: Production
-          - **Image**: `${{ env.IMAGE_URI }}`
+          - **Image**: `asia-southeast1-docker.pkg.dev/maliev-website/maliev-website-artifact-prod/maliev-line-chatbot-service:${{ steps.version.outputs.version }}`
           - **Commit**: `${{ github.sha }}`
           - **Deployed**: `$(date -u +'%Y-%m-%d %H:%M:%S UTC')`
           
@@ -233,22 +191,3 @@ jobs:
           🤖 Auto-generated release by GitHub Actions
         draft: false
         prerelease: false
-
-    - name: Production deployment summary
-      run: |
-        echo "🎉 Production deployment completed successfully!"
-        echo "📦 Version: ${{ steps.version.outputs.version }}"
-        echo "🏷️ Type: ${{ steps.version.outputs.tag_type }}"
-        echo "🚀 Image: $IMAGE_URI"
-        echo "🌐 URL: https://line-chatbot.maliev.com"
-        echo "📝 Commit: ${{ github.sha }}"
-
-    - name: Post deployment verification
-      run: |
-        echo "⏳ Waiting for production deployment to stabilize..."
-        sleep 60
-        echo "🔍 Production deployment verification:"
-        echo "  1. Health Check: https://line-chatbot.maliev.com/health"
-        echo "  2. Admin Panel: https://line-chatbot.maliev.com/admin"
-        echo "  3. LINE Webhook: https://line-chatbot.maliev.com/webhook"
-        echo "✅ Production deployment ready!"
